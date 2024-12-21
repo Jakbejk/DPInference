@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23.5)
 
 
-set(OpenCV_DIR "C:\\OpenCV\\opencv\\build")
+set(OpenCV_DIR "C:\\OpenCV\\opencv\\build\\x64\\vc16")
 
 ########### ACCELERATOR SECTION
 set(CPU "CPU")
@@ -28,7 +28,6 @@ set(SOURCES
         src/include/GpuInference.h
         src/include/CpuInference.h
         src/CpuInference.cpp
-
 )
 
 ########### EXECUTABLE

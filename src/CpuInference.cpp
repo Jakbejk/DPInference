@@ -3,12 +3,14 @@
 #include "CpuInference.h"
 
 
-CpuInference::CpuInference(const std::string &model_path): model_(fdeep::load_model(model_path)) {
+CpuInference::CpuInference(const std::string& model_path): model_(fdeep::load_model(model_path))
+{
 }
 
 CpuInference::~CpuInference() = default;
 
-OutTensor CpuInference::predict(const cv::Mat &image, std::size_t out_class) const {
+OutTensor CpuInference::predict(const cv::Mat& image, std::size_t out_class) const
+{
     OutTensor out_tensor;
     const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::high_resolution_clock::now();
     auto input_tensor = to_tensor(image);
@@ -20,14 +22,17 @@ OutTensor CpuInference::predict(const cv::Mat &image, std::size_t out_class) con
     return out_tensor;
 }
 
-OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat> &images, std::size_t out_class) const {
+OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat>& images, std::size_t out_class) const
+{
     OutMulTensors out_mul_tensors;
     std::vector<OutMulTensor> out_mul_tensor_vector;
     out_mul_tensor_vector.reserve(images.size());
-    std::vector<std::shared_future<OutMulTensor> > futures;
+    std::vector<std::shared_future<OutMulTensor>> futures;
     const auto start = std::chrono::high_resolution_clock::now();
-    for (const auto &image: images) {
-        auto future = std::async(std::launch::async, [&]() {
+    for (const auto& image : images)
+    {
+        auto future = std::async(std::launch::async, [&]()
+        {
             OutMulTensor out_mul_tensor;
             const auto current_start = std::chrono::high_resolution_clock::now();
             auto vector = to_tensor(image);
@@ -40,7 +45,8 @@ OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat> &images, std:
         });
         futures.push_back(future.share());
     }
-    for (const auto &future: futures) {
+    for (const auto& future : futures)
+    {
         out_mul_tensor_vector.push_back(future.get());
     }
     const auto end = std::chrono::high_resolution_clock::now();
@@ -49,10 +55,11 @@ OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat> &images, std:
     return out_mul_tensors;
 }
 
-fdeep::tensor CpuInference::to_tensor(const cv::Mat &image) {
-    const auto converted_image = to_vector_input(image);
-    const fdeep::tensor_shape shape(MODEL_INPUT_SIZE, MODEL_INPUT_SIZE, 1);
-    auto tensor = fdeep::tensor(shape, converted_image);
+fdeep::tensor CpuInference::to_tensor(const cv::Mat& image)
+{
+    const auto converted_image = modify_image(image);
+    const auto float_array = to_vector_input(converted_image);
+    auto tensor = fdeep::tensor(fdeep::tensor_shape{28, 28, 1}, float_array);
     return tensor;
 }
 
