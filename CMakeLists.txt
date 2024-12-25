@@ -6,7 +6,6 @@ set(OpenCV_DIR "C:\\OpenCV\\opencv\\build\\x64\\vc16")
 ########### ACCELERATOR SECTION
 set(CPU "CPU")
 set(GPU "GPU")
-set(ACCELERATOR ${CPU})
 if (${ACCELERATOR} MATCHES ${GPU})
     set(ACCELERATE_GPU 1)
 else ()

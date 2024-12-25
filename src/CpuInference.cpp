@@ -22,24 +22,24 @@ OutTensor CpuInference::predict(const cv::Mat& image, std::size_t out_class) con
     return out_tensor;
 }
 
-OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat>& images, std::size_t out_class) const
+OutParTensors CpuInference::predict_all(const std::vector<cv::Mat>& images, std::size_t out_class) const
 {
-    OutMulTensors out_mul_tensors;
-    std::vector<OutMulTensor> out_mul_tensor_vector;
+    OutParTensors out_mul_tensors;
+    std::vector<OutParTensor> out_mul_tensor_vector;
     out_mul_tensor_vector.reserve(images.size());
-    std::vector<std::shared_future<OutMulTensor>> futures;
+    std::vector<std::shared_future<OutParTensor>> futures;
     const auto start = std::chrono::high_resolution_clock::now();
     for (const auto& image : images)
     {
         auto future = std::async(std::launch::async, [&]()
         {
-            OutMulTensor out_mul_tensor;
+            OutParTensor out_mul_tensor;
             const auto current_start = std::chrono::high_resolution_clock::now();
             auto vector = to_tensor(image);
             const auto out_tensor = this->model_.predict({vector});
             const auto current_end = std::chrono::high_resolution_clock::now();
-            out_mul_tensor.offset_milliseconds = static_cast<float>((current_start - start).count()) / 1000.0;
-            out_mul_tensor.milliseconds = static_cast<float>((current_end - current_start).count()) / 1000.0;
+            out_mul_tensor.offset_milliseconds = static_cast<float>((current_start - start).count()) / 1000000.0;
+            out_mul_tensor.milliseconds = static_cast<float>((current_end - current_start).count()) / 1000000.0;
             out_mul_tensor.predictions = out_tensor[0].to_vector();
             return out_mul_tensor;
         });
@@ -50,7 +50,7 @@ OutMulTensors CpuInference::predict_all(const std::vector<cv::Mat>& images, std:
         out_mul_tensor_vector.push_back(future.get());
     }
     const auto end = std::chrono::high_resolution_clock::now();
-    out_mul_tensors.milliseconds = static_cast<float>((end - start).count()) / 1000.0;
+    out_mul_tensors.milliseconds = static_cast<float>((end - start).count()) / 1000000.0;
     out_mul_tensors.out_tensors = out_mul_tensor_vector;
     return out_mul_tensors;
 }

@@ -16,7 +16,7 @@ public:
 
     [[nodiscard]] OutTensor predict(const cv::Mat &image, std::size_t out_class) const;
 
-    [[nodiscard]] OutMulTensors predict_all(const std::vector<cv::Mat> &images, std::size_t out_class) const;
+    [[nodiscard]] OutParTensors predict_all(const std::vector<cv::Mat> &images, std::size_t out_class) const;
 };
 #endif
 
