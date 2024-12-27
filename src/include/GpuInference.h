@@ -13,6 +13,7 @@ class GpuInference final : public AbstractInference {
     nvinfer1::ICudaEngine *engine_;
     ProgramLogger *program_logger_;
 
+    static long get_SmCores();
 
     static void init_cuda_buffers(std::array<void *, 2> &buffers, const std::vector<float> &image_data,
                                   std::size_t out_class);
@@ -26,14 +27,16 @@ class GpuInference final : public AbstractInference {
 
     static float compute_milliseconds(const cudaEvent_t &start, const cudaEvent_t &end);
 
+    static int ConvertSMVer2Cores(int major, int minor);
+
 public:
-    explicit GpuInference(const std::string &model_path);
+    explicit GpuInference(const std::string &model_path, const nvinfer1::ILogger::Severity &severity);
 
     ~GpuInference() override;
 
     [[nodiscard]] OutTensor predict(const cv::Mat &image, std::size_t out_class) const override;
 
-    [[nodiscard]] OutMulTensors predict_all(const std::vector<cv::Mat> &images, std::size_t out_class) const override;
+    [[nodiscard]] OutParTensors predict_all(const std::vector<cv::Mat> &images, std::size_t out_class) const override;
 
     static nvinfer1::ICudaEngine *build_engine(const std::string &onnx_model_path, ProgramLogger &logger);
 };

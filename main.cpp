@@ -8,22 +8,18 @@
 
 std::ofstream ofstream("output.csv");
 
-std::pair<std::string, std::string> parse_argument(const std::string& arg)
-{
-    if (arg.size() < 4 || arg.substr(0, 2) != "--")
-    {
+std::pair<std::string, std::string> parse_argument(const std::string &arg) {
+    if (arg.size() < 4 || arg.substr(0, 2) != "--") {
         return {"", ""}; // Invalid format
     }
 
     const size_t split_position = arg.find('=');
     size_t value_offset = 0;
-    if (split_position == std::string::npos || split_position <= 2)
-    {
+    if (split_position == std::string::npos || split_position <= 2) {
         return {"", ""}; // Invalid format
     }
     const size_t start_quote = arg.find('"', split_position + 1);
-    if (start_quote == split_position + 1)
-    {
+    if (start_quote == split_position + 1) {
         value_offset = 1;
     }
 
@@ -32,27 +28,22 @@ std::pair<std::string, std::string> parse_argument(const std::string& arg)
     return {name, value};
 }
 
-std::map<std::string, std::string> get_args(const int argv, char* argc[])
-{
+std::map<std::string, std::string> get_args(const int argv, char *argc[]) {
     std::map<std::string, std::string> arguments;
-    for (int i = 1; i < argv; i++)
-    {
+    for (int i = 1; i < argv; i++) {
         const auto arg = parse_argument(argc[i]);
-        if (!arg.first.empty())
-        {
+        if (!arg.first.empty()) {
             arguments[arg.first] = arg.second;
         }
     }
     return arguments;
 }
 
-std::vector<cv::Mat> load_images(const std::string& data_root)
-{
+std::vector<cv::Mat> load_images(const std::string &data_root) {
     const std::vector<std::string> image_paths = find_all_images(data_root);
     std::vector<cv::Mat> images;
     images.reserve(image_paths.size());
-    for (const auto& image_path : image_paths)
-    {
+    for (const auto &image_path: image_paths) {
         images.push_back(load_image(image_path));
     }
     return images;
@@ -63,16 +54,29 @@ std::vector<cv::Mat> load_images(const std::string& data_root)
 void test_parallel(const GpuInference &inference, const std::vector<cv::Mat> &images) {
     const auto par_tensors = inference.predict_all(images, MODEL_OUTPUT_CLASS);
 
-    std::cout << "Offset;Duration;\n";
+    ofstream << "Offset;Duration;Class;\n";
     for (const auto &par_tensor: par_tensors.out_tensors) {
-        std::cout << par_tensor.offset_milliseconds << ";" << par_tensor.milliseconds << ";\n";
+        ofstream << par_tensor.offset_milliseconds << ";" << par_tensor.milliseconds << ";" << argmax(
+            par_tensor.predictions) << ";\n";
     }
+    std::cout << "Parallel: " << par_tensors.milliseconds << "ms" << std::endl;
 }
 
-void test() {
-    const auto images = load_images();
-    const auto inference = GpuInference(R"(C:\Users\honza\CLionProjects\InferenceTest\models\model.onnx)");
+void test_sequential(const GpuInference &inference, const std::vector<cv::Mat> &images) {
+    const auto par_tensors = inference.predict_all(images, MODEL_OUTPUT_CLASS);
+    float t = 0;
+    for (const auto &image: images) {
+        const auto tensor = inference.predict(image, MODEL_OUTPUT_CLASS);
+        t += tensor.milliseconds;
+    }
+    std::cout << "Sequential: " << par_tensors.milliseconds << "ms" << std::endl;
+}
+
+void test(const std::string &model, const std::string &data) {
+    const auto images = load_images(data);
+    const auto inference = GpuInference(model, nvinfer1::ILogger::Severity::kERROR);
     test_parallel(inference, images);
+    test_sequential(inference, images);
 }
 
 #elif ACCELERATE_CPU
@@ -117,8 +121,7 @@ void test(const std::string& model_path, const std::string& data_root)
 
 #endif
 
-int main(const int argc, char* argv[])
-{
+int main(const int argc, char *argv[]) {
     const auto arguments = get_args(argc, argv);
     const auto model = arguments.at("model");
     const auto data = arguments.at("data_root");
